@@ -1,20 +1,20 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt.android)
 }
 
 android {
     namespace = "com.ka.gastos"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.ka.gastos"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -31,12 +31,38 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+        resValues = true
     }
+
+    flavorDimensions.add("environment")
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            buildConfigField("String", "BASE_URL", "\"https://rickandmortyapi.com/api/\"")
+        }
+
+        create("prod") {
+            dimension = "environment"
+            buildConfigField("String", "BASE_URL", "\"https://rickandmortyapi.com/api/\"")
+            resValue("string", "app_name", "Gastos")
+        }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+    }
+}
+
+ksp {
+    arg("hilt.disableModuleHaveInstallInCheck", "true")
 }
 
 dependencies {
@@ -48,6 +74,19 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+
+    implementation(libs.androidx.compose.ui.text.google.fonts)      // G Fonts
+    implementation(libs.androidx.lifecycle.viewmodel.compose)       // viewModel()
+    implementation(libs.com.squareup.retrofit2.retrofit)            // Retrofit
+    implementation(libs.com.squareup.retrofit2.converter.json)      // JSON
+    implementation(libs.io.coil.kt.coil.compose)                    // Coil
+    implementation(libs.androidx.navigation.compose)                // Navigation
+    implementation(libs.androidx.compose.material.icons.extended)   // Icons extendend
+    implementation(libs.hilt.android)                               // Implementación de Hilt
+    implementation(libs.hilt.navigation.compose)                    // Integración con Jetpack Compose
+    ksp(libs.hilt.compiler)                                         // KSP
+
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

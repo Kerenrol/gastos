@@ -1,6 +1,6 @@
 package com.ka.gastos.core.di
 
-import com.ka.gastos.features.data.remote.GastosApi // Asegúrate de importar la interfaz
+import com.ka.gastos.features.data.remote.GastosApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,7 +23,6 @@ object NetworkModule {
             .build()
     }
 
-    // --- AGREGA ESTE MÉTODO ---
     @Provides
     @Singleton
     fun provideGastosApi(@RickAndMortyRetrofit retrofit: Retrofit): GastosApi {

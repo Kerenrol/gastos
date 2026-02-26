@@ -50,19 +50,25 @@ class WebSocketManager @Inject constructor(
                 try {
                     val json = JSONObject(text)
                     val type = json.getString("type")
-                    val data = json.getString("data")
-                    
+
+                    if (!json.has("data")) {
+                        Log.w("WebSocket", "El mensaje no contiene el campo 'data'.")
+                        return
+                    }
+
                     when (type) {
-                        "create" -> {
-                            val gasto = gson.fromJson(data, GastoDto::class.java)
-                            _events.tryEmit(GastoSocketEvent.OnGastoCreated(gasto))
-                        }
-                        "update" -> {
-                            val gasto = gson.fromJson(data, GastoDto::class.java)
-                             _events.tryEmit(GastoSocketEvent.OnGastoUpdated(gasto))
+                        "create", "update" -> {
+                            val dataString = json.getJSONObject("data").toString()
+                            val gasto = gson.fromJson(dataString, GastoDto::class.java)
+                            if (type == "create") {
+                                _events.tryEmit(GastoSocketEvent.OnGastoCreated(gasto))
+                            } else {
+                                _events.tryEmit(GastoSocketEvent.OnGastoUpdated(gasto))
+                            }
                         }
                         "delete" -> {
-                            val deletedId = JSONObject(data).getInt("id")
+                            val dataJson = json.getJSONObject("data")
+                            val deletedId = dataJson.getInt("id")
                             _events.tryEmit(GastoSocketEvent.OnGastoDeleted(deletedId))
                         }
                     }
@@ -84,6 +90,65 @@ class WebSocketManager @Inject constructor(
             }
         })
     }
+
+    fun updateGasto(gasto: GastoDto) {
+        if (webSocket == null) {
+            Log.e("WebSocket", "No conectado. No se puede actualizar el gasto.")
+            _events.tryEmit(GastoSocketEvent.ConnectionError("Not connected, can't update expense."))
+            return
+        }
+
+        val gastoJson = gson.toJson(gasto)
+        val gastoData = JSONObject(gastoJson)
+
+        val message = JSONObject()
+        message.put("type", "update")
+        message.put("data", gastoData)
+
+        webSocket?.send(message.toString())
+        Log.d("WebSocket", "Enviando mensaje de actualización de gasto: $message")
+    }
+
+    fun deleteGasto(gastoId: Int, grupoId: Int) {
+        if (webSocket == null) {
+            Log.e("WebSocket", "No conectado. No se puede eliminar el gasto.")
+            _events.tryEmit(GastoSocketEvent.ConnectionError("Not connected, can't delete expense."))
+            return
+        }
+
+        val gastoData = JSONObject()
+        gastoData.put("id", gastoId)
+        gastoData.put("grupo_id", grupoId)
+
+        val message = JSONObject()
+        message.put("type", "delete")
+        message.put("data", gastoData)
+
+        webSocket?.send(message.toString())
+        Log.d("WebSocket", "Enviando mensaje de eliminación de gasto: $message")
+    }
+
+    fun createGasto(descripcion: String, monto: Double, pagadorId: Int, grupoId: Int) {
+        if (webSocket == null) {
+            Log.e("WebSocket", "No conectado. No se puede crear el gasto.")
+            _events.tryEmit(GastoSocketEvent.ConnectionError("Not connected, can't create expense."))
+            return
+        }
+
+        val gastoData = JSONObject()
+        gastoData.put("descripcion", descripcion)
+        gastoData.put("monto", monto)
+        gastoData.put("pagado_por_id", pagadorId)
+        gastoData.put("grupo_id", grupoId)
+
+        val message = JSONObject()
+        message.put("type", "create")
+        message.put("data", gastoData)
+
+        webSocket?.send(message.toString())
+        Log.d("WebSocket", "Enviando mensaje de creación de gasto: $message")
+    }
+
 
     fun disconnect() {
         webSocket?.close(1000, "Cierre manual")

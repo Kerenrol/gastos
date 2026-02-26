@@ -8,7 +8,7 @@ fun GastoDto.toExpense(): Expense {
         id = id,
         descripcion = descripcion,
         monto = monto,
-        pagadoPor = pagadorId.toString(), // Convertimos a String como en el modelo original
-        fecha = "" // La API no devuelve fecha, la dejamos vacía por ahora
+        pagadoPor = pagadorId.toString(),
+        fecha = ""
     )
 }

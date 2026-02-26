@@ -6,7 +6,6 @@ import com.ka.gastos.features.data.model.Expense
 import com.ka.gastos.features.data.remote.ApiService
 import com.ka.gastos.features.data.remote.GastoSocketEvent
 import com.ka.gastos.features.data.remote.WebSocketManager
-import com.ka.gastos.features.data.remote.dto.CreateGastoRequest
 import com.ka.gastos.features.data.mapper.toExpense
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -84,17 +83,7 @@ class HomeViewModel @Inject constructor(
     }
 
     fun addExpense(descripcion: String, monto: Double, pagadorId: Int, grupoId: Int) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                val request = CreateGastoRequest(descripcion, monto, pagadorId, grupoId)
-                apiService.createGasto(request)
-            } catch (e: Exception) {
-                _error.value = "Error al agregar gasto: ${e.message}"
-            } finally {
-                _isLoading.value = false
-            }
-        }
+         webSocketManager.createGasto(descripcion, monto, pagadorId, grupoId)
     }
 
     override fun onCleared() {

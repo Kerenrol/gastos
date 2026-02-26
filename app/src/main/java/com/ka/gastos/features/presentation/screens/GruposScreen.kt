@@ -67,7 +67,7 @@ fun GruposScreen(navController: NavController) {
         LazyColumn {
             items(grupos) { grupo ->
                 GrupoItem(grupo = grupo) {
-                    // Corregido para usar una ruta de texto simple
+                    // Corregido para usar la ruta de texto simple que SÍ existe
                     navController.navigate("home/${grupo.id}")
                 }
             }

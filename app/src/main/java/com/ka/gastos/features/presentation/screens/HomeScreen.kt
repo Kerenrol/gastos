@@ -12,15 +12,23 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,18 +38,24 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.ka.gastos.features.data.model.Expense
+import com.ka.gastos.features.presentation.components.CustomTextField
 import com.ka.gastos.features.presentation.viewmodel.HomeViewModel
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController) {
-    // El ViewModel se obtiene automáticamente a través de Hilt
     val viewModel: HomeViewModel = hiltViewModel()
     val expenses by viewModel.expenses.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
-    
-    // El grupoId se obtiene de los argumentos de la ruta
+
     val grupoId = navController.currentBackStackEntry?.arguments?.getInt("grupoId") ?: 0
+
+    // Estado para controlar la visibilidad del Bottom Sheet
+    val sheetState = rememberModalBottomSheetState()
+    var showBottomSheet by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(key1 = grupoId) {
         if (grupoId != 0) {
@@ -51,7 +65,7 @@ fun HomeScreen(navController: NavController) {
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { navController.navigate("add_expense/$grupoId") }) {
+            FloatingActionButton(onClick = { showBottomSheet = true }) {
                 Icon(Icons.Default.Add, contentDescription = "Añadir Gasto")
             }
         }
@@ -76,8 +90,57 @@ fun HomeScreen(navController: NavController) {
                 }
             }
         }
+
+        // --- Bottom Sheet para añadir un gasto ---
+        if (showBottomSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showBottomSheet = false },
+                sheetState = sheetState
+            ) {
+                AddExpenseForm(viewModel = viewModel, grupoId = grupoId) {
+                    scope.launch {
+                        sheetState.hide()
+                    }.invokeOnCompletion {
+                        if (!sheetState.isVisible) {
+                            showBottomSheet = false
+                        }
+                    }
+                }
+            }
+        }
     }
 }
+
+@Composable
+fun AddExpenseForm(viewModel: HomeViewModel, grupoId: Int, onGastoCreated: () -> Unit) {
+    var descripcion by remember { mutableStateOf("") }
+    var monto by remember { mutableStateOf("") }
+    var pagadorId by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text("Nuevo Gasto", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+        CustomTextField(value = descripcion, onValueChange = { descripcion = it }, label = "Descripción")
+        CustomTextField(value = monto, onValueChange = { monto = it }, label = "Monto")
+        CustomTextField(value = pagadorId, onValueChange = { pagadorId = it }, label = "ID del Pagador")
+        Button(
+            onClick = {
+                val montoDouble = monto.toDoubleOrNull() ?: 0.0
+                val pagadorIdInt = pagadorId.toIntOrNull() ?: 0
+                if (descripcion.isNotBlank() && montoDouble > 0 && pagadorIdInt > 0) {
+                    viewModel.addExpense(descripcion, montoDouble, pagadorIdInt, grupoId)
+                    onGastoCreated()
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Guardar Gasto")
+        }
+    }
+}
+
 
 @Composable
 fun ExpenseItem(expense: Expense) {

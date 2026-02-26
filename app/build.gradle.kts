@@ -79,6 +79,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)       // viewModel()
     implementation(libs.com.squareup.retrofit2.retrofit)            // Retrofit
     implementation(libs.com.squareup.retrofit2.converter.json)      // JSON
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation(libs.io.coil.kt.coil.compose)                    // Coil
     implementation(libs.androidx.navigation.compose)                // Navigation
     implementation(libs.androidx.compose.material.icons.extended)   // Icons extendend

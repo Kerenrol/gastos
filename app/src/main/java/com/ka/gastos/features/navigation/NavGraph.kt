@@ -6,8 +6,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.ka.gastos.features.presentation.gastos.GastosScreen
 import com.ka.gastos.features.presentation.screens.GruposScreen
-import com.ka.gastos.features.presentation.screens.HomeScreen
 import com.ka.gastos.features.presentation.screens.LoginScreen
 import com.ka.gastos.features.presentation.screens.RegisterScreen
 
@@ -26,11 +26,10 @@ fun NavGraph() {
             GruposScreen(navController)
         }
         composable(
-            route = "home/{grupoId}",
+            route = "gastos/{grupoId}",
             arguments = listOf(navArgument("grupoId") { type = NavType.IntType })
         ) {
-            HomeScreen(navController = navController)
+            GastosScreen()
         }
-        // La ruta "add_expense" ya no es necesaria y se ha eliminado.
     }
 }

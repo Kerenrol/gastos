@@ -7,6 +7,6 @@ data class GastoDto(
     val descripcion: String,
     val monto: Double,
     @SerializedName("pagador_id") val pagadorId: Int,
-    @SerializedName("grupo_id") val grupoId: Int
-    // Añade aquí cualquier otro campo que devuelva tu API, como la fecha.
+    @SerializedName("grupo_id") val grupoId: Int,
+    val fecha: String // <-- ¡SOLUCIÓN! Campo añadido para que no se pierda la fecha.
 )

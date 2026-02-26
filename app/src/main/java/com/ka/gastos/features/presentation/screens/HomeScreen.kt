@@ -84,7 +84,10 @@ fun HomeScreen(navController: NavController) {
                 Text(text = error!!, color = Color.Red, modifier = Modifier.align(Alignment.CenterHorizontally))
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(expenses) { expense ->
+                    // ---- ¡SOLUCIÓN FINAL! ----
+                    // Se añade una `key` única y estable para cada elemento.
+                    // Esto permite a Compose identificar qué elemento es nuevo y actualizar la UI.
+                    items(items = expenses, key = { it.id }) { expense ->
                         ExpenseItem(expense)
                     }
                 }
@@ -130,7 +133,7 @@ fun AddExpenseForm(viewModel: HomeViewModel, grupoId: Int, onGastoCreated: () ->
                 val montoDouble = monto.toDoubleOrNull() ?: 0.0
                 val pagadorIdInt = pagadorId.toIntOrNull() ?: 0
                 if (descripcion.isNotBlank() && montoDouble > 0 && pagadorIdInt > 0) {
-                    viewModel.addExpense(descripcion, montoDouble, pagadorIdInt, grupoId)
+                    viewModel.createGasto(descripcion, montoDouble, pagadorIdInt, grupoId)
                     onGastoCreated()
                 }
             },

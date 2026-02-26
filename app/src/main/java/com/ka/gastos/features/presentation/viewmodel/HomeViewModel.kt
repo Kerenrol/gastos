@@ -7,6 +7,7 @@ import com.ka.gastos.features.data.remote.ApiService
 import com.ka.gastos.features.data.remote.GastoSocketEvent
 import com.ka.gastos.features.data.remote.WebSocketManager
 import com.ka.gastos.features.data.mapper.toExpense
+import com.ka.gastos.features.data.remote.dto.CreateGastoRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,7 +48,16 @@ class HomeViewModel @Inject constructor(
                 when (event) {
                     is GastoSocketEvent.OnGastoCreated -> {
                         val newExpense = event.gasto.toExpense()
-                        _expenses.update { currentList -> listOf(newExpense) + currentList }
+                        // ---- ¡SOLUCIÓN FINAL! ----
+                        // Lógica a prueba de duplicados.
+                        // Se añade el nuevo gasto solo si no existe ya en la lista.
+                        _expenses.update { currentList ->
+                            if (currentList.any { it.id == newExpense.id }) {
+                                currentList // Si ya existe, no hagas nada.
+                            } else {
+                                listOf(newExpense) + currentList // Si no existe, añádelo.
+                            }
+                        }
                     }
                     is GastoSocketEvent.OnGastoUpdated -> {
                         val updatedExpense = event.gasto.toExpense()
@@ -82,8 +92,11 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun addExpense(descripcion: String, monto: Double, pagadorId: Int, grupoId: Int) {
-         webSocketManager.createGasto(descripcion, monto, pagadorId, grupoId)
+    fun createGasto(descripcion: String, monto: Double, pagadorId: Int, grupoId: Int) {
+        viewModelScope.launch {
+            val request = CreateGastoRequest(descripcion, monto, pagadorId, grupoId)
+            apiService.createGasto(request)
+        }
     }
 
     override fun onCleared() {

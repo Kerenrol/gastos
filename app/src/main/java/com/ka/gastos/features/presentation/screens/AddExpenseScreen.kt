@@ -82,7 +82,7 @@ fun AddExpenseScreen(navController: NavController) {
                     val pagadorIdInt = pagadorId.toIntOrNull() ?: 0
 
                     if (descripcion.isNotBlank() && montoDouble > 0 && pagadorIdInt > 0 && grupoId != 0) {
-                        viewModel.addExpense(descripcion, montoDouble, pagadorIdInt, grupoId)
+                        viewModel.createGasto(descripcion, montoDouble, pagadorIdInt, grupoId)
                         navController.popBackStack()
                     }
                 },

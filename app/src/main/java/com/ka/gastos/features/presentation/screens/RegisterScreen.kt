@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,14 +22,20 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.ka.gastos.features.presentation.components.CustomTextField
+import com.ka.gastos.features.presentation.viewmodel.LoginViewModel
 
 @Composable
-fun RegisterScreen(navController: NavController) {
+fun RegisterScreen(
+    navController: NavController,
+    viewModel: LoginViewModel = hiltViewModel()
+) {
     var userName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val state = viewModel.registerState
 
     Column(
         modifier = Modifier
@@ -57,8 +64,16 @@ fun RegisterScreen(navController: NavController) {
             label = "Password"
         )
 
-        Button(onClick = { /* TODO */ }) {
+        Button(onClick = { viewModel.onRegister(userName, email, password) }) {
             Text("Registrar")
+        }
+
+        if (state.isLoading) {
+            CircularProgressIndicator()
+        }
+
+        state.registerError?.let {
+            Text(text = it, color = Color.Red)
         }
 
         Spacer(modifier = Modifier.height(16.dp))

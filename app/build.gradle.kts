@@ -44,12 +44,12 @@ android {
     productFlavors {
         create("dev") {
             dimension = "environment"
-            buildConfigField("String", "BASE_URL", "\"https://rickandmortyapi.com/api/\"")
+            buildConfigField("String", "BASE_URL", "\"http://44.197.255.1:8080/\"")
         }
 
         create("prod") {
             dimension = "environment"
-            buildConfigField("String", "BASE_URL", "\"https://rickandmortyapi.com/api/\"")
+            buildConfigField("String", "BASE_URL", "\"http://44.197.255.1:8080/\"")
             resValue("string", "app_name", "Gastos")
         }
     }

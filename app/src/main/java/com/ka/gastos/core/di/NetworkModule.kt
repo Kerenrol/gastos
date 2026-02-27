@@ -1,6 +1,7 @@
 package com.ka.gastos.core.di
 
 import com.google.gson.Gson
+import com.ka.gastos.features.data.remote.ApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -22,5 +23,11 @@ object NetworkModule {
     @Singleton
     fun provideGson(): Gson {
         return Gson()
+    }
+
+    @Provides
+    @Singleton
+    fun provideApiService(okHttpClient: OkHttpClient, gson: Gson): ApiService {
+        return ApiService(okHttpClient, gson)
     }
 }

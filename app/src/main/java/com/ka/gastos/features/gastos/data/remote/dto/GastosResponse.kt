@@ -1,4 +1,4 @@
-package com.ka.gastos.features.data.remote.dto
+package com.ka.gastos.features.gastos.data.remote.dto
 
 // Esta clase representa el objeto JSON que envuelve la lista de gastos
 data class GastosResponse(

@@ -2,9 +2,9 @@ package com.ka.gastos.features.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ka.gastos.features.data.model.Grupo
+import com.ka.gastos.features.grupos.domain.model.Grupo
 import com.ka.gastos.features.data.remote.ApiService
-import com.ka.gastos.features.data.remote.dto.CreateGrupoRequest
+import com.ka.gastos.features.grupos.data.remote.dto.CreateGrupoRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,17 +23,25 @@ class GrupoViewModel @Inject constructor(
         loadGrupos()
     }
 
-    fun loadGrupos() {
+    private fun loadGrupos() {
         viewModelScope.launch {
-            _grupos.value = apiService.getGrupos()
+            try {
+                _grupos.value = apiService.getGrupos()
+            } catch (e: Exception) {
+                // Manejar error
+            }
         }
     }
 
     fun createGrupo(nombre: String) {
         viewModelScope.launch {
-            val success = apiService.createGrupo(CreateGrupoRequest(nombre))
-            if (success) {
-                loadGrupos() // Recargamos la lista si se creó con éxito
+            try {
+                val success = apiService.createGrupo(CreateGrupoRequest(nombre))
+                if (success) {
+                    loadGrupos() // Recargamos la lista si se creó con éxito
+                }
+            } catch (e: Exception) {
+                // Manejar error
             }
         }
     }

@@ -5,16 +5,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ka.gastos.core.UserPreferences
 import com.ka.gastos.features.data.remote.ApiService
-import com.ka.gastos.features.data.remote.dto.LoginRequest
-import com.ka.gastos.features.data.remote.dto.RegisterRequest
+import com.ka.gastos.features.auth.data.remote.dto.LoginRequest
+import com.ka.gastos.features.auth.data.remote.dto.RegisterRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    private val userPreferences: UserPreferences
 ) : ViewModel() {
 
     var loginState by mutableStateOf(LoginState())
@@ -26,8 +28,9 @@ class LoginViewModel @Inject constructor(
     fun onLogin(user: String, pass: String) {
         viewModelScope.launch {
             loginState = loginState.copy(isLoading = true, loginError = null)
-            val success = apiService.login(LoginRequest(user, pass))
-            if (success) {
+            val response = apiService.login(LoginRequest(user, pass))
+            if (response != null) {
+                userPreferences.saveUser(response.user)
                 loginState = loginState.copy(isLoading = false, loginSuccess = true)
             } else {
                 loginState = loginState.copy(isLoading = false, loginError = "Usuario o contraseña incorrectos")

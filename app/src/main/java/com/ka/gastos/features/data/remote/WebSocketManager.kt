@@ -2,8 +2,7 @@ package com.ka.gastos.features.data.remote
 
 import android.util.Log
 import com.google.gson.Gson
-import com.ka.gastos.BuildConfig
-import com.ka.gastos.features.data.remote.dto.GastoDto
+import com.ka.gastos.features.gastos.data.remote.dto.GastoDto
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import okhttp3.OkHttpClient
@@ -36,22 +35,17 @@ class WebSocketManager @Inject constructor(
     fun connect(grupoId: Int) {
         if (webSocket != null) return // Ya conectado
 
-        val wsUrl = BuildConfig.BASE_URL.replace("http://", "ws://") + "ws"
-        val request = Request.Builder().url(wsUrl).build()
+        val request = Request.Builder().url("ws://44.197.255.1:8080/ws").build()
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
 
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 Log.d("WebSocket", "Conectado!")
-                // ---- SOLUCIÓN ----
-                // El JSON para suscribirse debe tener comillas dobles. 
-                // El formato anterior era inválido y causaba el "Error: null".
                 val subscribeMessage = "{\"type\": \"subscribe\", \"grupo_id\": $grupoId}"
                 webSocket.send(subscribeMessage)
                 _events.tryEmit(GastoSocketEvent.ConnectionOpened)
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
-                // Paso 1: El mensaje llega correctamente. ¡Esto ya lo confirmamos!
                 Log.d("WebSocket", "Mensaje recibido: $text")
                 try {
                     val json = JSONObject(text)
@@ -65,17 +59,8 @@ class WebSocketManager @Inject constructor(
                     when (type) {
                         "create", "update" -> {
                             val dataString = json.getJSONObject("data").toString()
-                            
-                            // Paso 2: Convertimos el JSON 'data' a nuestro objeto GastoDto.
                             val gasto = gson.fromJson(dataString, GastoDto::class.java)
-
-                            // ---- ¡PUNTO CLAVE DE DIAGNÓSTICO! ----
-                            // Este log te mostrará si el 'id' del gasto está llegando desde el backend.
-                            // Si el 'id' es 0 o null, la lista de Compose no se actualizará.
-                            Log.d("WebSocket", "Gasto parseado: $gasto")
-                            
                             if (type == "create") {
-                                // Paso 4: Emitimos el evento para que el ViewModel actualice la lista.
                                 _events.tryEmit(GastoSocketEvent.OnGastoCreated(gasto))
                             } else {
                                 _events.tryEmit(GastoSocketEvent.OnGastoUpdated(gasto))
@@ -142,7 +127,6 @@ class WebSocketManager @Inject constructor(
         webSocket?.send(message.toString())
         Log.d("WebSocket", "Enviando mensaje de eliminación de gasto: $message")
     }
-
 
     fun disconnect() {
         webSocket?.close(1000, "Cierre manual")

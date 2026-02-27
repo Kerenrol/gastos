@@ -85,6 +85,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)   // Icons extendend
     implementation(libs.hilt.android)                               // Implementación de Hilt
     implementation(libs.hilt.navigation.compose)                    // Integración con Jetpack Compose
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
     ksp(libs.hilt.compiler)                                         // KSP
 
 

@@ -1,4 +1,4 @@
-package com.ka.gastos.features.presentation.screens
+package com.ka.gastos.features.gastos.presentation
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,14 +25,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.ka.gastos.features.presentation.components.CustomTextField
-import com.ka.gastos.features.presentation.viewmodel.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddExpenseScreen(navController: NavController) {
-    val viewModel: HomeViewModel = hiltViewModel()
-    val grupoId = navController.currentBackStackEntry?.arguments?.getInt("grupoId") ?: 0
-    
+    val viewModel: GastosViewModel = hiltViewModel()
+
     var descripcion by remember { mutableStateOf("") }
     var monto by remember { mutableStateOf("") }
     var pagadorId by remember { mutableStateOf("") }
@@ -81,8 +79,8 @@ fun AddExpenseScreen(navController: NavController) {
                     val montoDouble = monto.toDoubleOrNull() ?: 0.0
                     val pagadorIdInt = pagadorId.toIntOrNull() ?: 0
 
-                    if (descripcion.isNotBlank() && montoDouble > 0 && pagadorIdInt > 0 && grupoId != 0) {
-                        viewModel.createGasto(descripcion, montoDouble, pagadorIdInt, grupoId)
+                    if (descripcion.isNotBlank() && montoDouble > 0 && pagadorIdInt > 0) {
+                        viewModel.createGasto(descripcion, montoDouble, pagadorIdInt)
                         navController.popBackStack()
                     }
                 },

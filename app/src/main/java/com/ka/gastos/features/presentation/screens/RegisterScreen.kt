@@ -11,6 +11,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -36,6 +38,15 @@ fun RegisterScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val state = viewModel.registerState
+
+    LaunchedEffect(state.registerSuccess) {
+        if (state.registerSuccess) {
+            // Navegamos a la pantalla de login y limpiamos el historial de navegación
+            navController.navigate("login") {
+                popUpTo("register") { inclusive = true }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -61,11 +72,12 @@ fun RegisterScreen(
         CustomTextField(
             value = password,
             onValueChange = { password = it },
-            label = "Password"
+            label = "Password",
+            visualTransformation = PasswordVisualTransformation()
         )
 
         Button(onClick = { viewModel.onRegister(userName, email, password) }) {
-            Text("Registrar")
+            Text("Registrarse")
         }
 
         if (state.isLoading) {
@@ -82,7 +94,7 @@ fun RegisterScreen(
             append("¿Ya tienes cuenta? ")
             pushStringAnnotation(tag = "LOGIN", annotation = "login")
             withStyle(style = SpanStyle(color = Color.Blue)) {
-                append("Inicia sesión")
+                append("Inicia sesión aquí")
             }
             pop()
         }
@@ -92,7 +104,7 @@ fun RegisterScreen(
             onClick = {
                 annotatedString.getStringAnnotations(tag = "LOGIN", start = it, end = it)
                     .firstOrNull()?.let {
-                        navController.popBackStack()
+                        navController.navigate("login")
                     }
             }
         )

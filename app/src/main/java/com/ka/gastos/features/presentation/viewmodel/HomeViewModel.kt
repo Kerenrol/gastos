@@ -2,16 +2,18 @@ package com.ka.gastos.features.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ka.gastos.features.data.model.Expense
+import com.ka.gastos.core.UserPreferences
+import com.ka.gastos.features.gastos.domain.model.Expense
 import com.ka.gastos.features.data.remote.ApiService
 import com.ka.gastos.features.data.remote.GastoSocketEvent
 import com.ka.gastos.features.data.remote.WebSocketManager
-import com.ka.gastos.features.data.mapper.toExpense
-import com.ka.gastos.features.data.remote.dto.CreateGastoRequest
+import com.ka.gastos.features.gastos.data.mapper.toExpense
+import com.ka.gastos.features.gastos.data.remote.dto.CreateGastoRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -21,7 +23,8 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val apiService: ApiService,
-    private val webSocketManager: WebSocketManager
+    private val webSocketManager: WebSocketManager,
+    private val userPreferences: UserPreferences
 ) : ViewModel() {
 
     private val _expenses = MutableStateFlow<List<Expense>>(emptyList())
@@ -48,16 +51,7 @@ class HomeViewModel @Inject constructor(
                 when (event) {
                     is GastoSocketEvent.OnGastoCreated -> {
                         val newExpense = event.gasto.toExpense()
-                        // ---- ¡SOLUCIÓN FINAL! ----
-                        // Lógica a prueba de duplicados.
-                        // Se añade el nuevo gasto solo si no existe ya en la lista.
-                        _expenses.update { currentList ->
-                            if (currentList.any { it.id == newExpense.id }) {
-                                currentList // Si ya existe, no hagas nada.
-                            } else {
-                                listOf(newExpense) + currentList // Si no existe, añádelo.
-                            }
-                        }
+                        _expenses.update { currentList -> listOf(newExpense) + currentList }
                     }
                     is GastoSocketEvent.OnGastoUpdated -> {
                         val updatedExpense = event.gasto.toExpense()
@@ -92,10 +86,21 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun createGasto(descripcion: String, monto: Double, pagadorId: Int, grupoId: Int) {
+    fun addExpense(descripcion: String, monto: Double, grupoId: Int) {
         viewModelScope.launch {
-            val request = CreateGastoRequest(descripcion, monto, pagadorId, grupoId)
-            apiService.createGasto(request)
+            val user = userPreferences.user.first()
+            if (user != null) {
+                val createGastoRequest = CreateGastoRequest(descripcion, monto, user.id, grupoId)
+                val success = apiService.createGasto(createGastoRequest)
+                if (success) {
+                    // Si el gasto se crea con éxito, recargamos la lista de gastos.
+                    loadData(grupoId)
+                } else {
+                    _error.value = "Error al crear el gasto. Inténtalo de nuevo."
+                }
+            } else {
+                _error.value = "Error: No se pudo obtener la información del usuario. Por favor, inicie sesión de nuevo."
+            }
         }
     }
 

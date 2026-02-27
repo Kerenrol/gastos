@@ -2,12 +2,13 @@ package com.ka.gastos.features.data.remote
 
 import android.util.Log
 import com.google.gson.Gson
-import com.ka.gastos.features.data.model.Grupo
-import com.ka.gastos.features.data.remote.dto.CreateGastoRequest
-import com.ka.gastos.features.data.remote.dto.CreateGrupoRequest
-import com.ka.gastos.features.data.remote.dto.GastosResponse
-import com.ka.gastos.features.data.remote.dto.LoginRequest
-import com.ka.gastos.features.data.remote.dto.RegisterRequest
+import com.ka.gastos.features.auth.data.remote.dto.LoginRequest
+import com.ka.gastos.features.auth.data.remote.dto.LoginResponse
+import com.ka.gastos.features.auth.data.remote.dto.RegisterRequest
+import com.ka.gastos.features.gastos.data.remote.dto.CreateGastoRequest
+import com.ka.gastos.features.gastos.data.remote.dto.GastosResponse
+import com.ka.gastos.features.grupos.data.remote.dto.CreateGrupoRequest
+import com.ka.gastos.features.grupos.domain.model.Grupo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -26,14 +27,18 @@ class ApiService @Inject constructor(
     private val baseUrl = "http://44.197.255.1:8080"
 
     // --- Auth ---
-    suspend fun login(request: LoginRequest): Boolean = withContext(Dispatchers.IO) {
+    suspend fun login(request: LoginRequest): LoginResponse? = withContext(Dispatchers.IO) {
         try {
             val requestBody = gson.toJson(request).toRequestBody("application/json".toMediaType())
             val apiRequest = Request.Builder().url("$baseUrl/login").post(requestBody).build()
-            client.newCall(apiRequest).execute().isSuccessful
+            val response = client.newCall(apiRequest).execute()
+            if (!response.isSuccessful) return@withContext null
+
+            val responseBody = response.body?.string()
+            gson.fromJson(responseBody, LoginResponse::class.java)
         } catch (e: Exception) {
             Log.e("ApiService", "Error en login: ${e.message}")
-            false
+            null
         }
     }
 

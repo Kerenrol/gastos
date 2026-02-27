@@ -37,20 +37,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.ka.gastos.features.data.model.Expense
+import com.ka.gastos.features.gastos.domain.model.Expense
 import com.ka.gastos.features.presentation.components.CustomTextField
 import com.ka.gastos.features.presentation.viewmodel.HomeViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(navController: NavController, grupoId: Int) {
     val viewModel: HomeViewModel = hiltViewModel()
     val expenses by viewModel.expenses.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
-
-    val grupoId = navController.currentBackStackEntry?.arguments?.getInt("grupoId") ?: 0
 
     // Estado para controlar la visibilidad del Bottom Sheet
     val sheetState = rememberModalBottomSheetState()
@@ -84,10 +82,7 @@ fun HomeScreen(navController: NavController) {
                 Text(text = error!!, color = Color.Red, modifier = Modifier.align(Alignment.CenterHorizontally))
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    // ---- ¡SOLUCIÓN FINAL! ----
-                    // Se añade una `key` única y estable para cada elemento.
-                    // Esto permite a Compose identificar qué elemento es nuevo y actualizar la UI.
-                    items(items = expenses, key = { it.id }) { expense ->
+                    items(expenses) { expense ->
                         ExpenseItem(expense)
                     }
                 }
@@ -118,7 +113,6 @@ fun HomeScreen(navController: NavController) {
 fun AddExpenseForm(viewModel: HomeViewModel, grupoId: Int, onGastoCreated: () -> Unit) {
     var descripcion by remember { mutableStateOf("") }
     var monto by remember { mutableStateOf("") }
-    var pagadorId by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier.padding(16.dp),
@@ -127,13 +121,11 @@ fun AddExpenseForm(viewModel: HomeViewModel, grupoId: Int, onGastoCreated: () ->
         Text("Nuevo Gasto", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         CustomTextField(value = descripcion, onValueChange = { descripcion = it }, label = "Descripción")
         CustomTextField(value = monto, onValueChange = { monto = it }, label = "Monto")
-        CustomTextField(value = pagadorId, onValueChange = { pagadorId = it }, label = "ID del Pagador")
         Button(
             onClick = {
                 val montoDouble = monto.toDoubleOrNull() ?: 0.0
-                val pagadorIdInt = pagadorId.toIntOrNull() ?: 0
-                if (descripcion.isNotBlank() && montoDouble > 0 && pagadorIdInt > 0) {
-                    viewModel.createGasto(descripcion, montoDouble, pagadorIdInt, grupoId)
+                if (descripcion.isNotBlank() && montoDouble > 0) {
+                    viewModel.addExpense(descripcion, montoDouble, grupoId)
                     onGastoCreated()
                 }
             },
@@ -155,7 +147,7 @@ fun ExpenseItem(expense: Expense) {
     ) {
         Column {
             Text(text = expense.descripcion, fontWeight = FontWeight.Bold)
-            Text(text = "Pagado por: ${expense.pagadoPor}", fontSize = 12.sp, color = Color.Gray)
+            Text(text = "Pagado por: ${expense.pagadoPor ?: "Desconocido"}", fontSize = 12.sp, color = Color.Gray)
         }
         Spacer(modifier = Modifier.width(16.dp))
         Text(text = "$${expense.monto}", fontWeight = FontWeight.Bold, fontSize = 16.sp)

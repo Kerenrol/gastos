@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.ka.gastos.features.auth.data.remote.dto.User
 import com.ka.gastos.features.gastos.domain.model.Expense
 import com.ka.gastos.features.presentation.components.CustomTextField
 import com.ka.gastos.features.presentation.viewmodel.HomeViewModel
@@ -46,9 +47,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(navController: NavController, grupoId: Int) {
     val viewModel: HomeViewModel = hiltViewModel()
-    val expenses by viewModel.expenses.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val error by viewModel.error.collectAsState()
+    val state by viewModel.uiState.collectAsState()
 
     // Estado para controlar la visibilidad del Bottom Sheet
     val sheetState = rememberModalBottomSheetState()
@@ -76,14 +75,14 @@ fun HomeScreen(navController: NavController, grupoId: Int) {
         ) {
             Text("Mis Gastos (Grupo: $grupoId)", fontSize = 24.sp, fontWeight = FontWeight.Bold)
 
-            if (isLoading) {
+            if (state.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-            } else if (error != null) {
-                Text(text = error!!, color = Color.Red, modifier = Modifier.align(Alignment.CenterHorizontally))
+            } else if (state.error != null) {
+                Text(text = state.error!!, color = Color.Red, modifier = Modifier.align(Alignment.CenterHorizontally))
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(expenses) { expense ->
-                        ExpenseItem(expense)
+                    items(state.expenses) { expense ->
+                        ExpenseItem(expense, state.currentUser)
                     }
                 }
             }
@@ -138,7 +137,7 @@ fun AddExpenseForm(viewModel: HomeViewModel, grupoId: Int, onGastoCreated: () ->
 
 
 @Composable
-fun ExpenseItem(expense: Expense) {
+fun ExpenseItem(expense: Expense, currentUser: User?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -147,7 +146,12 @@ fun ExpenseItem(expense: Expense) {
     ) {
         Column {
             Text(text = expense.descripcion, fontWeight = FontWeight.Bold)
-            Text(text = "Pagado por: ${expense.pagadoPor ?: "Desconocido"}", fontSize = 12.sp, color = Color.Gray)
+            val pagadorDisplay = when {
+                !expense.pagadoPor.isNullOrBlank() -> expense.pagadoPor
+                expense.pagadorId == currentUser?.id -> currentUser.userName
+                else -> "ID: ${expense.pagadorId}"
+            }
+            Text(text = "Pagado por: $pagadorDisplay", fontSize = 12.sp, color = Color.Gray)
         }
         Spacer(modifier = Modifier.width(16.dp))
         Text(text = "$${expense.monto}", fontWeight = FontWeight.Bold, fontSize = 16.sp)

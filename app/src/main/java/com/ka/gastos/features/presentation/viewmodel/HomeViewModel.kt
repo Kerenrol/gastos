@@ -3,22 +3,24 @@ package com.ka.gastos.features.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ka.gastos.core.UserPreferences
-import com.ka.gastos.features.gastos.domain.model.Expense
+import com.ka.gastos.features.auth.data.remote.dto.User
 import com.ka.gastos.features.data.remote.ApiService
 import com.ka.gastos.features.data.remote.GastoSocketEvent
 import com.ka.gastos.features.data.remote.WebSocketManager
 import com.ka.gastos.features.gastos.data.mapper.toExpense
 import com.ka.gastos.features.gastos.data.remote.dto.CreateGastoRequest
+import com.ka.gastos.features.gastos.domain.model.Expense
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+data class HomeUiState(
+    val expenses: List<Expense> = emptyList(),
+    val currentUser: User? = null,
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -27,17 +29,20 @@ class HomeViewModel @Inject constructor(
     private val userPreferences: UserPreferences
 ) : ViewModel() {
 
-    private val _expenses = MutableStateFlow<List<Expense>>(emptyList())
-    val expenses: StateFlow<List<Expense>> = _expenses.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
+    private val _uiState = MutableStateFlow(HomeUiState())
+    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
         listenToSocketEvents()
+        loadCurrentUser()
+    }
+
+    private fun loadCurrentUser() {
+        viewModelScope.launch {
+            userPreferences.user.collect { user ->
+                _uiState.update { it.copy(currentUser = user) }
+            }
+        }
     }
 
     fun connectAndLoad(grupoId: Int) {
@@ -51,17 +56,19 @@ class HomeViewModel @Inject constructor(
                 when (event) {
                     is GastoSocketEvent.OnGastoCreated -> {
                         val newExpense = event.gasto.toExpense()
-                        _expenses.update { currentList -> listOf(newExpense) + currentList }
+                        _uiState.update { it.copy(expenses = listOf(newExpense) + it.expenses) }
                     }
                     is GastoSocketEvent.OnGastoUpdated -> {
                         val updatedExpense = event.gasto.toExpense()
-                        _expenses.update { currentList ->
-                            currentList.map { if (it.id == updatedExpense.id) updatedExpense else it }
+                        _uiState.update { currentState ->
+                            currentState.copy(expenses = currentState.expenses.map {
+                                if (it.id == updatedExpense.id) updatedExpense else it
+                            })
                         }
                     }
                     is GastoSocketEvent.OnGastoDeleted -> {
-                        _expenses.update { currentList ->
-                            currentList.filterNot { it.id == event.gastoId }
+                        _uiState.update { currentState ->
+                            currentState.copy(expenses = currentState.expenses.filterNot { it.id == event.gastoId })
                         }
                     }
                     else -> Unit
@@ -72,34 +79,31 @@ class HomeViewModel @Inject constructor(
 
     private fun loadData(grupoId: Int) {
         viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
+            _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 val response = apiService.getGastos(grupoId)
-                _expenses.value = response?.gastos?.map { it.toExpense() } ?: emptyList()
+                val expenses = response?.gastos?.map { it.toExpense() } ?: emptyList()
+                _uiState.update { it.copy(expenses = expenses, isLoading = false) }
             } catch (e: Exception) {
-                _error.value = "Error al cargar datos: ${e.message}"
+                _uiState.update { it.copy(error = "Error al cargar datos: ${e.message}", isLoading = false) }
                 e.printStackTrace()
-            } finally {
-                _isLoading.value = false
             }
         }
     }
 
     fun addExpense(descripcion: String, monto: Double, grupoId: Int) {
         viewModelScope.launch {
-            val user = userPreferences.user.first()
+            val user = uiState.value.currentUser
             if (user != null) {
                 val createGastoRequest = CreateGastoRequest(descripcion, monto, user.id, grupoId)
                 val success = apiService.createGasto(createGastoRequest)
                 if (success) {
-                    // Si el gasto se crea con éxito, recargamos la lista de gastos.
                     loadData(grupoId)
                 } else {
-                    _error.value = "Error al crear el gasto. Inténtalo de nuevo."
+                    _uiState.update { it.copy(error = "Error al crear el gasto. Inténtalo de nuevo.") }
                 }
             } else {
-                _error.value = "Error: No se pudo obtener la información del usuario. Por favor, inicie sesión de nuevo."
+                _uiState.update { it.copy(error = "Error: No se pudo obtener la información del usuario. Por favor, inicie sesión de nuevo.") }
             }
         }
     }

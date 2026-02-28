@@ -14,13 +14,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.ka.gastos.features.auth.data.remote.dto.User
 import com.ka.gastos.features.gastos.domain.model.Expense
+import com.ka.gastos.features.presentation.viewmodel.HomeViewModel
 
 @Composable
 fun GastosScreen(
-    viewModel: GastosViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.uiState.collectAsState()
 
     var descripcion by remember { mutableStateOf("") }
     var monto by remember { mutableStateOf("") }
@@ -39,8 +41,8 @@ fun GastosScreen(
         }
 
         LazyColumn(modifier = Modifier.weight(1f)) {
-            items(items = state.gastos, key = { it.id }) { gasto ->
-                GastoItem(gasto = gasto)
+            items(items = state.expenses, key = { it.id }) { gasto ->
+                GastoItem(gasto = gasto, currentUser = state.currentUser)
             }
         }
 
@@ -65,7 +67,8 @@ fun GastosScreen(
                 onClick = {
                     val montoValue = monto.toDoubleOrNull() ?: 0.0
                     if (descripcion.isNotBlank() && montoValue > 0) {
-                        viewModel.createGasto(descripcion, montoValue, 1) // pagadorId hardcodeado a 1
+                        // Suponiendo que el grupoId es 1, idealmente debería pasarse como argumento a la pantalla
+                        viewModel.addExpense(descripcion, montoValue, 1) 
                         descripcion = ""
                         monto = ""
                     }
@@ -79,7 +82,7 @@ fun GastosScreen(
 }
 
 @Composable
-fun GastoItem(gasto: Expense) {
+fun GastoItem(gasto: Expense, currentUser: User?) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -88,11 +91,10 @@ fun GastoItem(gasto: Expense) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(text = gasto.descripcion, style = MaterialTheme.typography.titleMedium)
             Text(text = "Monto: ${gasto.monto}")
-            val pagadorDisplay = if (gasto.pagadoPor.isNullOrBlank()) {
-                val displayId = (gasto.id % 2) + 1 // Hacemos que el ID varíe entre 1 y 2
-                "ID: $displayId"
-            } else {
-                gasto.pagadoPor
+            val pagadorDisplay = when {
+                !gasto.pagadoPor.isNullOrBlank() -> gasto.pagadoPor
+                gasto.pagadorId == currentUser?.id -> currentUser.userName
+                else -> "ID: ${gasto.pagadorId}"
             }
             Text(text = "Pagado por: $pagadorDisplay")
         }
